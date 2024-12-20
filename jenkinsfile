@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Checkout the repository
+                    checkout scm
+                }
+            }
+        }
+        
+        stage('Create Branch and Tag') {
+            steps {
+                script {
+                    def branchName = "feature-branch-1"
+                    def tagName = "v1.0.0"
+                    def tagMessage = "Release version 1.0.0"
+                    
+                    // Checkout to main (or any default branch)
+                    sh "git checkout main"
+                    
+                    // Create and push new branch if it doesn't exist
+                    sh "git fetch"
+                    def branchExists = sh(script: "git branch --list ${branchName}", returnStdout: true).trim()
+                    if (!branchExists) {
+                        sh "git checkout -b ${branchName}"
+                        sh "git push origin ${branchName}"
+                    } else {
+                        echo "Branch ${branchName} already exists."
+                    }
+                    
+                    // Create and push a tag if it doesn't exist
+                    sh "git fetch --tags"
+                    def tagExists = sh(script: "git tag -l ${tagName}", returnStdout: true).trim()
+                    if (!tagExists) {
+                        sh "git tag -a ${tagName} -m '${tagMessage}'"
+                        sh "git push origin ${tagName}"
+                    } else {
+                        echo "Tag ${tagName} already exists."
+                    }
+                }
+            }
+        }
+    }
+}
