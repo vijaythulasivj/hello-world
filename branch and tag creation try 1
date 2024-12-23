@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Define your GitHub credentials (e.g., Personal Access Token) and repository URL
+        GIT_REPO = 'https://github.com/vijaythulasivj/hello-world.git'  // Change this to your repo URL
+        GIT_CREDENTIALS_ID = 'vijaythulasivj' // Replace with your Jenkins credentials ID for GitHub
+        BRANCH_NAME = 'new-branch' // Name of the branch to be created
+        TAG_NAME = 'v1.0.0' // Tag name to be created
+    }
+    
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                // Checkout the code from the GitHub repository
+                git credentialsId: "${GIT_CREDENTIALS_ID}", url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Create Branch') {
+            steps {
+                script {
+                    // Create and switch to the new branch
+                    bat 'git checkout -b ${BRANCH_NAME}'
+                }
+            }
+        }
+        
+        stage('Push Branch to GitHub') {
+            steps {
+                script {
+                    // Push the new branch to GitHub
+                    bat 'git push origin ${BRANCH_NAME}'
+                }
+            }
+        }
+        
+        stage('Create Tag') {
+            steps {
+                script {
+                    // Create the tag
+                    bat 'git tag ${TAG_NAME}'
+                }
+            }
+        }
+        
+        stage('Push Tag to GitHub') {
+            steps {
+                script {
+                    // Push the tag to GitHub
+                    bat 'git push origin ${TAG_NAME}'
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Branch and tag were successfully created and pushed!'
+        }
+        failure {
+            echo 'There was an error during the branch/tag creation process.'
+        }
+    }
+}
