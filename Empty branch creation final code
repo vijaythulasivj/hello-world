@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    environment {
+        GITHUB_REPO = "https://github.com/vijaythulasivj/hello-world.git"
+        GITHUB_CREDENTIALS_ID = "Github-credentials2" // Add your GitHub credentials ID
+    }
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                script {
+                    // Checkout the code from GitHub to get access to the repo
+                    git url: GITHUB_REPO, credentialsId: GITHUB_CREDENTIALS_ID
+                }
+            }
+        }
+
+        stage('Create Empty Branch') {
+            steps {
+                script {
+                    // Fetch all branches
+                    bat 'git fetch'
+
+                    // Create a new branch (empty branch from current state)
+                    bat 'git checkout --orphan new-empty-branch' // This creates an empty branch
+                    bat 'git rm -rf .' // Remove all files from the index (to keep it empty)
+                    bat 'git commit --allow-empty -m "Create empty branch"' // Commit the empty branch
+                }
+            }
+        }
+
+        stage('Push Empty Branch to GitHub') {
+            steps {
+                script {
+                    // Push the new empty branch to GitHub
+                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GITHUB_TOKEN')]) {
+                        bat "git push https://$GITHUB_TOKEN@github.com/vijaythulasivj/hello-world.git new-empty-branch"
+                    }
+                }
+            }
+        }
+    }
+}
