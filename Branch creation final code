@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    environment {
+        GITHUB_REPO = "https://github.com/vijaythulasivj/hello-world.git"
+    }
+    stages {
+        stage('Create and Switch to New Branch') {
+            steps {
+                script {
+                    bat "git fetch"
+                    bat "git checkout -b new-branch3 || git checkout new-branch3"
+                }
+            }
+        }
+
+        stage('Make Changes') {
+            steps {
+                script {
+                    bat "echo 'Some changes in the new branch' > newfile3.txt"
+                }
+            }
+        }
+
+        stage('Commit Changes') {
+            steps {
+                script {
+                    bat "git config user.name 'vijaythulasivj'"
+                    bat "git config user.email 'vijaythulasivj@gmail.com'"
+                    bat "git add ."
+                    bat 'git commit -m "Initial commit in the new branch"'
+                }
+            }
+        }
+
+        stage('Push New Branch to GitHub') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'Github-credentials2', variable: 'GITHUB_TOKEN')]) {
+                        bat "git push https://$GITHUB_TOKEN@github.com/vijaythulasivj/hello-world.git new-branch3"
+                    }
+                }
+            }
+        }
+    }
+}
