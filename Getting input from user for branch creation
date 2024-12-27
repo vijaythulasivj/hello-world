@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+    environment {
+        GITHUB_REPO = "https://github.com/vijaythulasivj/hello-world.git"
+        GITHUB_CREDENTIALS_ID = "Github-credentials2" // Replace with your actual GitHub credentials ID
+    }
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                script {
+                    // Checkout the code from GitHub to get access to the repo
+                    git url: GITHUB_REPO, credentialsId: GITHUB_CREDENTIALS_ID
+                }
+            }
+        }
+
+        stage('Input Branch Name') {
+            steps {
+                script {
+                    // Ask for the branch name from the developer
+                    BRANCH_NAME = input(
+                        message: 'Please enter the name for the new empty branch:',
+                        parameters: [
+                            string(defaultValue: 'new-empty-branch', description: 'Branch Name', name: 'BRANCH_NAME')
+                        ]
+                    )
+                }
+            }
+        }
+
+        stage('Create Empty Branch') {
+            steps {
+                script {
+                    // Fetch all branches
+                    bat 'git fetch'
+
+                    // Create the new empty branch from the current branch
+                    bat "git checkout --orphan ${BRANCH_NAME}" // This creates an empty branch
+
+                    // Remove all files from the index (keep it empty)
+                    bat 'git rm -rf .' 
+
+                    // Create an empty commit
+                    bat 'git commit --allow-empty -m "Create empty branch"'
+                }
+            }
+        }
+
+        stage('Push Empty Branch to GitHub') {
+            steps {
+                script {
+                    // Push the new empty branch to GitHub
+                    withCredentials([string(credentialsId: GITHUB_CREDENTIALS_ID, variable: 'GITHUB_TOKEN')]) {
+                        bat "git push https://$GITHUB_TOKEN@github.com/vijaythulasivj/hello-world.git ${BRANCH_NAME}"
+                    }
+                }
+            }
+        }
+    }
+}
