@@ -1,0 +1,85 @@
+pipeline {
+    agent any  // Runs on any available agent
+    
+    environment {
+        GIT_REPO = 'https://github.com/vijaythulasivj/hello-world.git'  // GitHub repository URL
+        GIT_CREDENTIALS = 'Github-credentials2'  // GitHub credentials ID (ensure this is correct)
+    }
+
+    stages {
+        stage('Checkout Repository') {
+            steps {
+                script {
+                    // Checkout the repository with the credentials
+                    git credentialsId: "${env.GIT_CREDENTIALS}", url: "${env.GIT_REPO}", branch: 'master'
+                }
+            }
+        }
+
+        stage('Input Branch and Tag Names') {
+            steps {
+                script {
+                    // Request user input for both branch and tag names
+                    def userInputBranch = input message: 'Enter the branch name:', parameters: [string(defaultValue: '', description: 'Branch name', name: 'BRANCH_NAME')]
+                    def userInputTag = input message: 'Enter the tag name:', parameters: [string(defaultValue: '', description: 'Tag name', name: 'TAG_NAME')]
+
+                    // Validate the branch and tag names to ensure they are not null or empty
+                    if (!userInputBranch || userInputBranch.trim().isEmpty()) {
+                        error "Branch name cannot be empty or null."
+                    }
+
+                    if (!userInputTag || userInputTag.trim().isEmpty()) {
+                        error "Tag name cannot be empty or null."
+                    }
+
+                    // Assign validated input to environment variables
+                    env.BRANCH_NAME = userInputBranch
+                    env.TAG_NAME = userInputTag
+
+                    echo "Branch name: ${env.BRANCH_NAME}, Tag name: ${env.TAG_NAME}"
+                }
+            }
+        }
+
+        stage('Create Branch') {
+            steps {
+                script {
+                    echo "Creating branch ${env.BRANCH_NAME}"
+                    bat "git fetch"
+                    bat "git show-ref refs/heads/${env.BRANCH_NAME} || git checkout -b ${env.BRANCH_NAME} origin/master"
+                }
+            }
+        }
+        
+        stage('Create Tag') {
+            steps {
+                script {
+                    echo "Creating tag: ${env.TAG_NAME}"
+                    bat "git tag ${env.TAG_NAME}"
+                }
+            }
+        }
+
+        stage('Push Branch to GitHub') {
+            steps {
+                script {
+                    // Push the new branch to GitHub
+                    withCredentials([string(credentialsId: GIT_CREDENTIALS, variable: 'GITHUB_TOKEN')]) {
+                        bat "git push https://$GITHUB_TOKEN@github.com/vijaythulasivj/hello-world.git ${BRANCH_NAME}"
+                    }
+                }
+            }
+        }
+
+        stage('Push Tag to GitHub') {
+            steps {
+                script {
+                    // Push the new tag to GitHub
+                    withCredentials([string(credentialsId: GIT_CREDENTIALS, variable: 'GITHUB_TOKEN')]) {
+                        bat "git push https://$GITHUB_TOKEN@github.com/vijaythulasivj/hello-world.git ${TAG_NAME}"
+                    }
+                }
+            }
+        }
+    }
+}
