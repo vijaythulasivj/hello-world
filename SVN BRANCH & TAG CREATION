@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        SVN_URL = 'file:///C:/Users/Sheasaanth/svn_repos'      // Corrected SVN URL
+        TRUNK_PATH = '/trunk'                                  // Trunk path in SVN repo
+        BRANCH_NAME = 'vijay4'                                 // Branch name
+        TAG_NAME = 'v1.0.0'                                    // Tag name, adjust as needed
+        SVN_CREDENTIALS_ID = 'svn-ssh-credentials'             // SSH credentials ID in Jenkins
+    }
+
+    stages {
+        stage('Checkout Trunk') {
+            steps {
+                script {
+                    // Checkout trunk from SVN repository using SSH agent for authentication
+                    withCredentials([sshUserPrivateKey(credentialsId: SVN_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                        bat """
+                        set GIT_SSH_COMMAND=ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no
+                        svn checkout ${SVN_URL}${TRUNK_PATH} --non-interactive --no-auth-cache
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Create Branch') {
+            steps {
+                script {
+                    // Create a new branch from trunk
+                    withCredentials([sshUserPrivateKey(credentialsId: SVN_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                        bat """
+                        set GIT_SSH_COMMAND=ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no
+                        svn copy ${SVN_URL}${TRUNK_PATH} ${SVN_URL}/branches/${BRANCH_NAME} -m "Creating branch ${BRANCH_NAME} from trunk" --non-interactive --no-auth-cache
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Create Tag') {
+            steps {
+                script {
+                    // Create a tag from the branch (or trunk)
+                    withCredentials([sshUserPrivateKey(credentialsId: SVN_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY')]) {
+                        bat """
+                        set GIT_SSH_COMMAND=ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no
+                        svn copy ${SVN_URL}/branches/${BRANCH_NAME} ${SVN_URL}/tags/${TAG_NAME} -m "Creating tag ${TAG_NAME} from branch ${BRANCH_NAME}" --non-interactive --no-auth-cache
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up the workspace after the job completes
+            cleanWs()
+        }
+    }
+}
+
+
+
+
